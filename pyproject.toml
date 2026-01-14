@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=42"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "funday_bundle"
+version = "2025.0.1"
+authors = [{ name = "Bertram Aakjær", email = "work.aakjaer@gmail.com" }]
+description = "Project Description"
+readme = "README.md"
+license = {file = "LICENSE"}
+requires-python = ">=3.13"
+dependencies = [
+    "bs4>=0.0.2",
+    "pandas>=2.3.3",
+    "requests>=2.32.5",
+    "selenium>=4.39.0",
+]
+
+[project.scripts]
+funday_bundle = "funday_bundle.main:main"
+
+[project.urls]
+Homepage = "https://aakjaer.site"
+
+[dependency-groups]
+dev = [
+    "pyinstaller>=6.17.0"
+]
