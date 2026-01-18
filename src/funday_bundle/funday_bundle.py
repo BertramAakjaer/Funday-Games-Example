@@ -33,7 +33,7 @@ class FundayBundle:
 
     # run as app() instead of app.run()
     def __call__(self) -> None:
-        scraper = SteamScraper(self.driver)
+        scraper = SteamScraper(self.driver, self.cache_collection)
         
         urls_to_scrape = [
             "https://store.steampowered.com/bundlelist/1721110/Abyssus",
@@ -44,8 +44,15 @@ class FundayBundle:
         #    scraper.scrape_bundle_page(url)
         #    time.sleep(random.uniform(2, 5))
         
-        single_page_url = "https://store.steampowered.com/app/3419520/Quarantine_Zone_The_Last_Check/"
+        urls_game_scrape = [
+            "https://store.steampowered.com/app/2835570/Buckshot_Roulette/",
+            "https://store.steampowered.com/app/3419520/Quarantine_Zone_The_Last_Check/",
+            "https://store.steampowered.com/app/2835570/Buckshot_Roulette/",
+            "https://store.steampowered.com/app/3419520/Quarantine_Zone_The_Last_Check/"
+        ]
         
-        scraper.scrape_game_page(single_page_url)
+        for url in urls_game_scrape:
+            scraper.scrape_game_page(url)
+            time.sleep(random.uniform(2, 5))
 
     

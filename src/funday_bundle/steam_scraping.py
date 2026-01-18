@@ -1,5 +1,6 @@
 import hashlib, logging, re
 
+from datetime import datetime
 from re import Match
 from typing import Any
 from enum import Enum
@@ -28,7 +29,7 @@ def _extract_steam_id(url: (str | int)) -> str | None:
     match: (Match[str] | None) = re.search(r'/(app|bundle|bundlelist)/(\d+)', str(url))
     
     if match:
-        url_type: (str | None) = match.group(1)
+        #url_type: (str | None) = match.group(1)
         steam_id: (str | None) = match.group(2)
         return steam_id
     return ""
@@ -51,11 +52,12 @@ def _get_url_by_id(steam_id: (str | int), url_type: UrlType) -> str | None:
             url_for_page = f"https://store.steampowered.com/bundlelist/{cleaned_id}/"
             
         case _:
-            url_for_page = ""
+            return ""
     
-    return url_for_page
+    return f"{url_for_page}?l=english"
 
-def parse_price(price_str: str) -> float:
+
+def _parse_price(price_str: str) -> float:
     cleaned = re.sub(r'[^\d.,]', '', price_str)
     cleaned = cleaned.replace(',', '.')
     
@@ -64,8 +66,10 @@ def parse_price(price_str: str) -> float:
     except ValueError:
         return 0.0
     
-def parse_ratings(raw_rating: str) -> tuple[int, float] | None:
-    match = re.search(r'(\d+)% of the ([\d,]+) user reviews', raw_rating)
+    
+def _parse_ratings(raw_rating: str) -> tuple[int, float] | None:
+    pattern = r'(\d+)%\s+(?:of the|af de)\s+([\d,.]+)\s+(?:user reviews|brugeranmeldelser)'
+    match = re.search(pattern, raw_rating)
     
     if match:
         percent_str = match.group(1)
@@ -77,13 +81,23 @@ def parse_ratings(raw_rating: str) -> tuple[int, float] | None:
         return count, percentage
     return None
 
+def _get_time_from_str(date_str: str) -> datetime | None:
+    try:
+        clean_date_string = date_str.split('\n')[-1]
+        date_object = datetime.strptime(clean_date_string, "%d %b, %Y")
+        
+        return date_object
+    except Exception as e:
+        logging.error(f"Error getting date from {str}: {e}")
+        return None
 
-def get_hash_from_url(url: str, hash_lenght=16) -> str:
+
+def _get_hash_from_url(url: str, hash_lenght=16) -> str:
     hash_object = hashlib.sha256(url.encode('utf-8'))    
     return hash_object.hexdigest()[:hash_lenght]
 
 
-def print_scraping_error(url: (str | int)) -> None:
+def _print_scraping_error(url: (str | int)) -> None:
     logging.error(f"Error scraping {url}")
     print(f"Failed to scrape {url}")
     return None
@@ -92,9 +106,10 @@ def print_scraping_error(url: (str | int)) -> None:
 
 # Class code
 class SteamScraper:
-    def __init__(self, driver: WebDriver):
+    def __init__(self, driver: WebDriver, cache_collection: CachedCollection):
         self.driver = driver
         self.wait = WebDriverWait(self.driver, 3)
+        self.cache_collection = cache_collection
         
     def _get_div_content(self, selector: str, find_multiple=False, element: (WebElement | None)=None) -> (WebElement | list[WebElement]):
         if element: # Using Element
@@ -111,26 +126,46 @@ class SteamScraper:
             return (self.driver.find_element(By.CSS_SELECTOR, selector))
     
     def _get_price(self, element: (WebElement | None)=None) -> float | None:
-        price_div = self._get_div_content(const.DISCOUNT_ORIGINAL, element=element)
+        price_div = self._get_div_content(const.PRICE_WRAPPER_SELECTOR, element=element)
+        
+        if isinstance(price_div, list):
+            return None
+        
+        try:
+            try:
+                price_span = self._get_div_content(const.NORMAL_GAME_PRICE, element=price_div)
+            except:
+                price_span = self._get_div_content(const.DISCOUNT_ORIGINAL_PRICE, element=price_div)
+        except:
+            return None
             
-        if not isinstance(price_div, list):
-            str_price: str = price_div.text.strip().lower()
+        if not isinstance(price_span, list):
+            str_price: str = price_span.text.strip().lower()
             str_price = str_price
             
             if not str_price:
                 return None
             
-            return parse_price(str_price)
+            return _parse_price(str_price)
     
     def _get_ratings(self) -> tuple[int, float] | None:
-        rating_div = self._get_div_content(const.REVIEW_SELECTOR)
+        rating_upper_div = self._get_div_content(const.REVIEW_1_SELECTOR)
+        
+        if isinstance(rating_upper_div, list):
+            return None
+        
+        rating_div = self._get_div_content(const.REVIEW_2_SELECTOR, element=rating_upper_div)
         
         if not isinstance(rating_div, list):
-            temp_rating = rating_div.text.strip().lower()
-            return parse_ratings(temp_rating)
+            content = rating_div.get_attribute("data-tooltip-html")
+            if content:
+                temp_rating = content.strip().lower()
+                return _parse_ratings(temp_rating)
             
             
             
+            
+    
     def scrape_bundle_page(self, url: str) -> None:
         try:
             self.driver.get(url)
@@ -159,14 +194,26 @@ class SteamScraper:
     
     
     
-    def scrape_game_page(self, steam_id: (str | int)) -> None:
+    
+    
+    def scrape_game_page(self, steam_id: (str | int)) -> GameCache | None:
+        logging.info(f"Starting Scraping: {steam_id}")
+        url = _get_url_by_id(steam_id, UrlType.Game_Page)
+        
+        if not url:
+            return _print_scraping_error(steam_id)
+        
+        hash = _get_hash_from_url(url)
+        logging.info(f"Calculated Hash: {hash}")
+        
+        game_obj = self.cache_collection.does_game_exists(hash)
+        
+        if game_obj:
+            logging.info(f"Game is already scraped at {game_obj.last_time_scraped}")
+            return game_obj
+        
+        
         try:
-            url = _get_url_by_id(steam_id, UrlType.Game_Page)
-            
-            if not url:
-                return print_scraping_error(steam_id)
-            
-            
             self.driver.get(url)
             
             # Variables to fill
@@ -178,57 +225,89 @@ class SteamScraper:
             _overall_rating: float
             _overall_count: int
             game_tags: list[str]
-            game_genres: list[str]
-            _release_date: int
+            _release_date: datetime
             
             
             #** Data scraping section **
             
             # Hash calculation
-            steam_link_hash = get_hash_from_url(url)
-            print(f"Hash: {steam_link_hash}")
+            steam_link_hash = hash
+            logging.info(f"Calculated Hash: {steam_link_hash}")
+            
             
             # ID saving
             temp_id = _extract_steam_id(steam_id)
             if not temp_id:
-                return print_scraping_error(steam_id)
+                return _print_scraping_error(steam_id)
             
-            _steam_id = int(temp_id) 
-            print(f"Steam ID: {_steam_id}")
+            _steam_id = int(temp_id)
+            logging.info(f"Exctracetd ID: {_steam_id}")
             
+                        
             # Game Title Extraction
             title_div = self._get_div_content(const.TITLE_SELECTOR)
             
             if not isinstance(title_div, list):
                 temp_title: str = title_div.text
                 game_title = temp_title.strip().lower()
-                print(f"Game Title: {game_title}")
-                
+            
+            logging.info(f"Scraped Game Title: {game_title}")
+            
+                            
             # Game Price
             temp_price = self._get_price()
             if not temp_price:
-                return print_scraping_error(steam_id)
+                return _print_scraping_error(steam_id)
             
             game_price = temp_price
-            print(f"Game Price: {game_price}")
+            logging.info(f"Scraped Game Price: {game_price}")
+            
             
             # Reviews
             temp_rating = self._get_ratings()
-            
-            if temp_rating is None:
-                return print_scraping_error(steam_id)
+                        
+            if not temp_rating:
+                return _print_scraping_error(steam_id)
             
             _overall_count, _overall_rating = temp_rating
             
-            print(f"Review Score: {_overall_rating}")
-            print(f"Review Count: {_overall_count}")
+            logging.info(f"Scraped Review Score: {_overall_rating * 100}%")
+            logging.info(f"Scraped Review Count: {_overall_count}")
             
             
-            # Tags            
-                
-            return
-        
-            a = GameCache(
+            # Tags
+            button_tags = self._get_div_content(const.BUTTON_TAGS)
+            if not isinstance(button_tags, list):
+                button_tags.click()
+            
+            tags_div = self._get_div_content(const.TAGS_SELECTOR)
+            if not isinstance(tags_div, list):
+                tags_str = tags_div.text
+                tags_list = tags_str.split("\n")
+                strip_list = [tag.strip().lower() for tag in tags_list]
+                game_tags = strip_list
+            
+            logging.info(f"Scraped game user tags: {game_tags}")
+            
+            
+            
+            # Release Date
+            release_date_div = self._get_div_content(const.RELEASE_DATE_SELECTOR)
+            
+            if not isinstance(release_date_div, list):
+                release_date_str = release_date_div.text
+                date_obj = _get_time_from_str(release_date_str)
+                if not date_obj:
+                    return _print_scraping_error(steam_id)
+                _release_date = date_obj
+            
+            logging.info(f"Scraped Release Date: {_release_date}")
+            
+            
+            
+            
+            logging.info(f"Success Fully Scraping Game: {steam_id}")
+            game_scraped = GameCache(
                 hash=steam_link_hash,
                 steam_id=_steam_id,
                 title=game_title,
@@ -236,12 +315,15 @@ class SteamScraper:
                 overall_rating=_overall_rating,
                 overall_count=_overall_count,
                 tags=game_tags,
-                genres=game_genres,
-                release_date=_release_date
+                release_date=_release_date,
+                last_time_scraped=datetime.now()
             )
             
-
+            self.cache_collection.add_game(game_scraped)
+            return game_scraped
+            
         except Exception as e:
             logging.error(f"Error scraping {steam_id}")
-            print(f"Failed to scrape {steam_id}: {e}")
+            print(f"Failed to scrape {steam_id}:")
+            print(e)
             return None

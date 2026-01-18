@@ -5,11 +5,14 @@ FOCUSABLE_SELECTOR = "[class*='Focusable']"
 
 # Game Page Selectors
 TITLE_SELECTOR = "[class*='apphub_AppName']"
-DISCOUNT_ORIGINAL = "[class*='discount_original_price']"
-REVIEW_SELECTOR = "[class*='nonresponsive_hidden responsive_reviewdesc']"
-
-
-
+PRICE_WRAPPER_SELECTOR = "[class*='game_area_purchase_game_wrapper']"
+DISCOUNT_ORIGINAL_PRICE = "[class*='discount_original_price']"
+NORMAL_GAME_PRICE = "[class*='game_purchase_price']"
+REVIEW_1_SELECTOR = "[class*='outlier_totals global review_box_background_secondary']"
+REVIEW_2_SELECTOR = "[class*='game_review_summary positive']"
+TAGS_SELECTOR = "[class*='app_tags popular_tags']" # User given tags
+BUTTON_TAGS = "[class*='app_tag add_button']" # Button to tags
+RELEASE_DATE_SELECTOR = "[class*='release_date']"
 
 
 ###############################
