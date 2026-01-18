@@ -1,5 +1,4 @@
-import logging, time, random
-
+import logging
 from dataclasses import dataclass, field
 
 from selenium import webdriver
@@ -28,12 +27,17 @@ class FundayBundle:
         if self.driver:
             self.driver.quit()
         
-        # Export Cached games/bundels to csv
-        self.cache_collection.export_to_csv()
+        try:
+            # Export Cached games/bundels to csv
+            self.cache_collection.export_to_csv()
+        except Exception as e:
+            logging.error("Data could not be saved")
+            logging.exception(f"Details: {e}")
+            print("To CSV failed. Check log file for details.")
 
     # run as app() instead of app.run()
     def __call__(self) -> None:
-        scraper = SteamScraper(self.driver, self.cache_collection)
+        scraper: SteamScraper = SteamScraper(self.driver, self.cache_collection)
         
         urls_to_scrape = [
             "https://store.steampowered.com/bundlelist/1721110/Abyssus",
@@ -51,8 +55,6 @@ class FundayBundle:
             "https://store.steampowered.com/app/3419520/Quarantine_Zone_The_Last_Check/"
         ]
         
-        for url in urls_game_scrape:
-            scraper.scrape_game_page(url)
-            time.sleep(random.uniform(2, 5))
+        scraper.scrape_game_pages(urls_game_scrape)
 
     

@@ -3,6 +3,8 @@ BUNDLE_SECTION_SELECTOR = "[class*='T_3MrEHN9bFK4I4FQqDC8']"
 BUNDLE_ELEMENTS_SELECTOR = "[class*='_1NM531LjOd5QmDktUetCOm']"
 FOCUSABLE_SELECTOR = "[class*='Focusable']"
 
+
+
 # Game Page Selectors
 TITLE_SELECTOR = "[class*='apphub_AppName']"
 PRICE_WRAPPER_SELECTOR = "[class*='game_area_purchase_game_wrapper']"
