@@ -5,7 +5,7 @@ from datetime import datetime
 from funday_bundle.data_structures import GameCache, BundleCache
 
 class DatabaseManager:
-    def __init__(self, db_path: str = "scraped_data/games.db"):
+    def __init__(self, db_path: str = "scraped_data/steam_games_n_bundles.db"):
         self.db_path = db_path
         self.conn = sqlite3.connect(self.db_path)
         self.conn.row_factory = sqlite3.Row  # Allows accessing columns by name
@@ -133,6 +133,17 @@ class DatabaseManager:
                 logging.error(f"Error parsing game from DB: {e}")
                 return None
         return None
+    
+    
+    def get_all_game_hashes(self) -> set[str]:
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT hash FROM games")
+        return {row['hash'] for row in cursor.fetchall()}
+
+    def get_all_bundle_hashes(self) -> set[str]:
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT hash FROM bundles")
+        return {row['hash'] for row in cursor.fetchall()}
     
     
     

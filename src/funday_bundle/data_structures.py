@@ -7,7 +7,7 @@ from funday_bundle.db_manager import DatabaseManager
 
 @dataclass(slots=True, frozen=True)
 class GameCache:
-    hash: str
+    hash: str # Hash of the access link, not the steam_id
     steam_id: int
     title: str
     price: float # in euro
@@ -19,7 +19,7 @@ class GameCache:
 
 @dataclass(slots=True, frozen=True)
 class BundleCache:
-    hash: str
+    hash: str # Hash of the access link, not the steam_id
     steam_id: str
     title: str
     discount: float
@@ -30,22 +30,43 @@ class BundleCache:
 
 @dataclass(slots=True)
 class CachedCollection:
-    # We use a special field for the DB manager so it doesn't interfere with standard dataclass behavior
     db_manager: DatabaseManager = field(init=False, repr=False)
+
+    # Cached hashes from database to save time on lookup
+    known_game_hashes: set[str] = field(default_factory=set, init=False)
+    known_bundle_hashes: set[str] = field(default_factory=set, init=False)
 
     def __post_init__(self):
         self.db_manager = DatabaseManager()
         
+        self.known_game_hashes = self.db_manager.get_all_game_hashes()
+        self.known_bundle_hashes = self.db_manager.get_all_bundle_hashes()
+        logging.info(f"Loaded {len(self.known_game_hashes)} games and {len(self.known_bundle_hashes)} bundles into memory.")
 
     def add_game(self, game_obj: GameCache) -> bool:
-        return self.db_manager.add_game(game_obj)
+        if self.db_manager.add_game(game_obj):
+            self.known_game_hashes.add(game_obj.hash)
+            return True
+        
+        return False
             
     def add_bundle(self, bundle_obj: BundleCache) -> bool:
-        return self.db_manager.add_bundle(bundle_obj)
+        if self.db_manager.add_bundle(bundle_obj):
+            self.known_bundle_hashes.add(bundle_obj.hash)
+            return True
+        return False
     
-    def does_game_exists(self, steam_id_hash: str) -> GameCache | None:
-        return self.db_manager.get_game(steam_id_hash)
+    def does_game_exists(self, steam_id_hash: str, return_object=False) -> GameCache | bool:
+        if steam_id_hash not in self.known_game_hashes:
+            return False
+        
+        if return_object:
+            game = self.db_manager.get_game(steam_id_hash)
+            if game:
+                return True
+            else:
+                return False
+        return True
     
-    # Replaces the old export_to_csv logic
     def close_connections(self) -> None:
         self.db_manager.close_connection()
