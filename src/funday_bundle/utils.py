@@ -6,9 +6,6 @@ from enum import Enum
 
 
 
-
-
-
 # Enums
 class UrlType(Enum):
     GAME_PAGE = 1

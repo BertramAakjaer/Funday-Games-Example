@@ -1,12 +1,11 @@
-# project_name
-Descript project
-
+# Funday Bundle Tool
+A Project made for the learning of scraping and analysing games on steam. This is then used to find optimal partners for new bundle "collabs".
 
 ## Installation & Setup
 1. Clone the repository
 ```bash
 # Clone this repository with git
-git clone project_link
+git clone https://github.com/BertramAakjaer/Funday-Games-Example
 
 # Open the directory in terminal
 cd Funday-Games-Example/
@@ -34,7 +33,7 @@ uv run funday_bundle
 ```
 
 
-# Tools for the project
+# Commands for developers of the Project
 
 **Generating a requirements file**
 ```bash

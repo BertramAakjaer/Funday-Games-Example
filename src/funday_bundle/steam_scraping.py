@@ -20,7 +20,11 @@ class SteamScraper:
         self.driver = driver
         self.wait = WebDriverWait(self.driver, 3)
         self.cache_collection = cache_collection
-        
+    
+    # ***   
+    # Common Scraper Functions
+    # ***
+    
     def _get_div_content(self, selector: str, find_multiple=False, element: (WebElement | None)=None) -> (WebElement | list[WebElement]):
         if element: # Using Element
             if find_multiple:
@@ -35,7 +39,10 @@ class SteamScraper:
             
             return (self.driver.find_element(By.CSS_SELECTOR, selector))
     
-
+    
+    # ***   
+    # Game Scraper Sub Functions
+    # ***
 
 
     def _get_game_price(self, element: (WebElement | None)=None) -> float | None:
@@ -201,9 +208,20 @@ class SteamScraper:
             logging.error(f"Error scraping {steam_id}: e")
             return (None, ReturnInfo.FAILED)
         
+    # ***   
+    # Bundle Scraper Sub Functions
+    # ***
+    
+        
+        
+    # ***   
+    # Callable Scraper functions
+    # ***
+        
 
     def scrape_game_pages(self, steam_ids: list[str] | list[int]) -> None:
-        logging.info(f"Beginning scrpaing of {len(steam_ids)} games")
+        logging.info(f"Beginning scraping of {len(steam_ids)} games")
+        
         for index, steam_id in enumerate(steam_ids):
             logging.info(f"Scraping game nr. {index + 1}: {steam_id}")
             _, return_info = self._scrape_single_game_page(steam_id)

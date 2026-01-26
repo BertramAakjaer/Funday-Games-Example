@@ -19,21 +19,17 @@ class FundayBundle:
         options.add_argument("--headless") 
         self.driver = webdriver.Chrome(options=options)
         
-        # Cache Init
-        self.cache_collection.import_from_csv()
-        
     def end_program(self):
         # Close driver
         if self.driver:
             self.driver.quit()
         
         try:
-            # Export Cached games/bundels to csv
-            self.cache_collection.export_to_csv()
+            # STOP DB CONNECTION instead of export_to_csv
+            self.cache_collection.close_connections()
         except Exception as e:
-            logging.error("Data could not be saved")
+            logging.error("Database connection could not be closed properly")
             logging.exception(f"Details: {e}")
-            print("To CSV failed. Check log file for details.")
 
     # run as app() instead of app.run()
     def __call__(self) -> None:
