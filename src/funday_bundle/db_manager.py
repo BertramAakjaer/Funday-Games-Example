@@ -41,6 +41,18 @@ class DatabaseManager:
                 games_in_bundle TEXT
             )
         ''')
+        
+        # Inside _create_tables(self)
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS bundle_contents (
+                game_hash TEXT,
+                bundle_hash TEXT,
+                PRIMARY KEY (game_hash, bundle_hash)
+            )
+        ''')
+        # Note: The Primary Key (game_hash, bundle_hash) automatically indexes 
+        # game_hash, making lookups extremely fast.
+        
         self.conn.commit()
 
     def add_game(self, game: 'GameCache') -> bool:
@@ -107,8 +119,20 @@ class DatabaseManager:
                 json.dumps(bundle.tags),
                 json.dumps(bundle.games_in_bundle)
             ))
+            
+            
+            # Prepare list of tuples for bulk insertion: [(game1, bundleA), (game2, bundleA)]
+            contents_data = [(g_hash, bundle.hash) for g_hash in bundle.games_in_bundle]
+
+            cursor.executemany('''
+                INSERT OR IGNORE INTO bundle_contents (game_hash, bundle_hash)
+                VALUES (?, ?)
+            ''', contents_data)
+
+
             self.conn.commit()
             return True
+        
         except Exception as e:
             logging.error(f"Failed to add bundle to DB: {e}")
             return False
@@ -144,6 +168,12 @@ class DatabaseManager:
         cursor = self.conn.cursor()
         cursor.execute("SELECT hash FROM bundles")
         return {row['hash'] for row in cursor.fetchall()}
+    
+    
+    def get_bundles_containing_game(self, game_hash: str) -> list[str]:
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT bundle_hash FROM bundle_contents WHERE game_hash = ?", (game_hash,))
+        return [row['bundle_hash'] for row in cursor.fetchall()]
     
     
     

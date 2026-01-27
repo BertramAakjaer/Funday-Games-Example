@@ -83,7 +83,7 @@ class SteamScraper:
                 return util.parse_ratings(temp_rating)
     
     
-    def _scrape_single_game_page(self, steam_id: (str | int)) -> tuple[GameCache | None, ReturnInfo]:
+    def _scrape_single_game_page(self, steam_id: (str | int)) -> ReturnInfo:
         url = util.get_url_by_id(steam_id, UrlType.GAME_PAGE)
         
         if not url:
@@ -95,8 +95,8 @@ class SteamScraper:
         game_obj = self.cache_collection.does_game_exists(hash)
         
         if game_obj:
-            logging.info(f"Game is already scraped at {game_obj.last_time_scraped}")
-            return (game_obj, ReturnInfo.GAME_FOUND_IN_CACHE)
+            logging.info(f"Game is already scraped.")
+            return ReturnInfo.FOUND_IN_CACHE
         
         
         try:
@@ -202,11 +202,11 @@ class SteamScraper:
             )
             
             self.cache_collection.add_game(game_scraped)
-            return (game_scraped, ReturnInfo.GAME_SCRAPED_SCUCCESFULLY)
+            return ReturnInfo.SCRAPED_SCUCCESFULLY
             
         except Exception as e:
             logging.error(f"Error scraping {steam_id}: e")
-            return (None, ReturnInfo.FAILED)
+            return ReturnInfo.FAILED
         
     # ***   
     # Bundle Scraper Sub Functions
@@ -224,9 +224,9 @@ class SteamScraper:
         
         for index, steam_id in enumerate(steam_ids):
             logging.info(f"Scraping game nr. {index + 1}: {steam_id}")
-            _, return_info = self._scrape_single_game_page(steam_id)
+            return_info = self._scrape_single_game_page(steam_id)
 
-            if (return_info == ReturnInfo.GAME_FOUND_IN_CACHE):
+            if (return_info == ReturnInfo.FOUND_IN_CACHE):
                 wait_time: float = 0
             else:
                 wait_time: float = random.uniform(2, 5)

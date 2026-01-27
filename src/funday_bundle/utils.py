@@ -13,8 +13,8 @@ class UrlType(Enum):
     GAME_BUNDLE_PAGE = 3
 
 class ReturnInfo(Enum):
-    GAME_FOUND_IN_CACHE = 1
-    GAME_SCRAPED_SCUCCESFULLY = 2
+    FOUND_IN_CACHE = 1
+    SCRAPED_SCUCCESFULLY = 2
     FAILED = 3
 
 
@@ -92,7 +92,7 @@ def get_hash_from_url(url: str, hash_lenght=16) -> str:
     return hash_object.hexdigest()[:hash_lenght]
 
 
-def print_scraping_error(url: (str | int)) -> tuple[None, ReturnInfo]:
+def print_scraping_error(url: (str | int)) -> ReturnInfo:
     logging.error(f"Error scraping {url}")
-    return (None, ReturnInfo.FAILED)
+    return ReturnInfo.FAILED
     
